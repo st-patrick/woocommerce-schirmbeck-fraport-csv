@@ -56,9 +56,12 @@ define("COLUMN_TITLES",
         "title-de_DE", "title-en_US", "title-zh_CN",
         "short_description-de_DE", "short_description-en_US", "short_description-zh_CN",
         "description-de_DE", "description-en_US", "description-zh_CN",
+        "family",
+        "magento_tax_class_id",
         "variation IDs"]
 );
 define("RETAILER_CODE", "pfueller");
+define("MAGENTO_TAX_CLASS_ID", 1);
 
 // set locale for special characters n chinese Characters
 setlocale(LC_CTYPE, 'en_US.UTF8');
@@ -80,6 +83,13 @@ function wsfc_display_future_table() {
     echo "</tr>";
     /////////////////////// END column titles //////////////////////////
 
+
+    // Set constant values for every row
+    $current_product_row_data = [
+        'retailer_code' => RETAILER_CODE,
+        'ean' => RETAILER_CODE,
+        'magento_tax_class_id' => MAGENTO_TAX_CLASS_ID,
+    ];
 
 
     /*
@@ -123,19 +133,26 @@ function wsfc_display_future_table() {
             }
         }
 
+        // determine product family by product attributes
+        $product_attributes = $parent_product->get_attributes();
+        $family = "other"; //default case
+        if ($product_attributes['pa_groesse'] != null) $family = "clothes";
+        if ($product_attributes['pa_schuhgroesse'] != null) $family = "shoes";
+
         // assemble all product data into an array for the row
-        $current_product_row_data = [
+        $current_product_row_data_update = [
             'row-nr' => $counter,
-            'retailer_code' => RETAILER_CODE,
             'origin_sku' => $origin_sku,
             'sku' => RETAILER_CODE . '_' . $origin_sku,
-            'ean' => RETAILER_CODE,
             'name-de_DE' => $parent_product->get_name(),
             'title-de_DE' => $parent_product->get_name(),
             'short_description-de_DE' => $parent_product->get_short_description(),
             'description-de_DE' => $parent_product->get_short_description(),
+            'family' => $family, // DEBUG "<pre>" . print_r($parent_product->get_attributes(), true) . "</pre>",
             'variation IDs' => $variation_ids_string
         ];
+        // assign updates to existing product row data array
+        $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
 
         // output parent row
         wsfc_output_data_row($current_product_row_data);
