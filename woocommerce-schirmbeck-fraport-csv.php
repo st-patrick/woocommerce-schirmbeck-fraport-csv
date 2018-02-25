@@ -37,7 +37,82 @@ function mt_add_pages() {
 
 function showPage() {
     echo "<h1>this is dummy content</h1>";
+    wsfc_display_future_table();
+
+
     //no CSV for now getFraportCSV();
+}
+
+
+function wsfc_display_future_table() {
+
+    $counter = 1;
+
+    echo "<table>";
+
+
+    /////////////////////// START column titles //////////////////////////
+
+    echo "<tr><td>No.</td><td>retailer_code</td><td>origin_sku</td><td>name-de_DE</td><td>variation IDs</td></tr>";
+
+    /////////////////////// END column titles //////////////////////////
+
+
+
+    /*
+     * thanks to Pribhav at stackoverflow
+     * https://stackoverflow.com/questions/46951224/woocommerce-product-loop-show-all-product-variation-images
+     */
+    $args = array(
+        'post_type' => 'product',
+        'posts_per_page' => 40
+    );
+    $loop = new WP_Query( $args );
+    while ( $loop->have_posts() ) : $loop->the_post();
+
+        ////////////////////// START parent row ////////////////////////////////
+        echo "<tr>";
+
+        $product_s = wc_get_product( $loop->post->ID );
+
+        echo "<td>" . $counter . "</td><td>pfueller</td><td></td><td>" . $product_s->get_name() . "</td><td>";
+
+
+        ////////////////////// END parent row ////////////////////////////////
+
+        if ($product_s->product_type == 'variable') {
+            $args = array(
+                'post_parent' => $loop->post->ID,
+                'post_type'   => 'product_variation',
+                'numberposts' => -1,
+            );
+            $variations = $product_s->get_available_variations();
+
+            foreach($variations as $key => $value) {
+                echo $value[variation_id] . ", ";
+            }
+            echo "</td></tr>";
+            $counter++;
+
+            ////////////////////// START variations rows ////////////////////////////////
+            foreach($variations as $key => $value) {
+                echo "<tr><td>" . $counter . "</td><td>pfueller</td><td></td><td>" . $product_s->get_name() . "</td><td></td></tr>";
+                $counter++;
+            }
+            ////////////////////// END variations rows ////////////////////////////////
+
+
+            //print($variations[0][variation_id]);
+            // You may get all images from $variations variable using loop
+
+        }
+
+
+
+    endwhile; wp_reset_query(); // Remember to reset
+
+    echo "</table>";
+
 }
 
 
