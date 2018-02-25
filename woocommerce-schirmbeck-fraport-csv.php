@@ -50,7 +50,14 @@ function showPage() {
 
 /******************************************* START shared values and setting ground rules **************************/
 
-define("COLUMN_TITLES", ["row-nr", "retailer_code", "origin_sku", "sku", "ean", "name-de_DE", "name-en_US", "variation IDs"]);
+define("COLUMN_TITLES",
+    ["row-nr", "retailer_code", "origin_sku", "sku", "ean",
+        "name-de_DE", "name-en_US", "name-zh_CN",
+        "title-de_DE", "title-en_US", "title-zh_CN",
+        "short_description-de_DE", "short_description-en_US", "short_description-zh_CN",
+        "description-de_DE", "description-en_US", "description-zh_CN",
+        "variation IDs"]
+);
 define("RETAILER_CODE", "pfueller");
 
 // set locale for special characters n chinese Characters
@@ -63,7 +70,7 @@ function wsfc_display_future_table() {
 
     $counter = 1;
 
-    echo "<table>";
+    echo "<table border='2px'>";
 
     /////////////////////// START column titles //////////////////////////
     echo "<tr>";
@@ -81,7 +88,7 @@ function wsfc_display_future_table() {
      */
     $args = array(
         'post_type' => 'product',
-        'posts_per_page' => 40
+        'posts_per_page' => 10
     );
     $loop = new WP_Query( $args );
     while ( $loop->have_posts() ) : $loop->the_post();
@@ -124,7 +131,9 @@ function wsfc_display_future_table() {
             'sku' => RETAILER_CODE . '_' . $origin_sku,
             'ean' => RETAILER_CODE,
             'name-de_DE' => $parent_product->get_name(),
-            'name-en_US' => 'MISSING',
+            'title-de_DE' => $parent_product->get_name(),
+            'short_description-de_DE' => $parent_product->get_short_description(),
+            'description-de_DE' => $parent_product->get_short_description(),
             'variation IDs' => $variation_ids_string
         ];
 
