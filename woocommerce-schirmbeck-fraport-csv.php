@@ -46,15 +46,23 @@ function showPage() {
 
 function wsfc_display_future_table() {
 
+    define("RETAILER_CODE", "pfueller");
+
+    // set locale for special characters n chinese Characters
+    setlocale(LC_CTYPE, 'en_US.UTF8');
+
     $counter = 1;
 
     echo "<table>";
 
 
     /////////////////////// START column titles //////////////////////////
-
-    echo "<tr><td>No.</td><td>retailer_code</td><td>origin_sku</td><td>name-de_DE</td><td>variation IDs</td></tr>";
-
+    $column_titles = ["row-nr", "retailer_code", "origin_sku", "sku", "ean", "name-de_DE", "name-en_US", "variation IDs"];
+    echo "<tr>";
+    foreach ($column_titles as $column_title) {
+        echo "<td>" . $column_title . "</td>";
+    }
+    echo "</tr>";
     /////////////////////// END column titles //////////////////////////
 
 
@@ -71,41 +79,81 @@ function wsfc_display_future_table() {
     while ( $loop->have_posts() ) : $loop->the_post();
 
         ////////////////////// START parent row ////////////////////////////////
+        $parent_product = wc_get_product( $loop->post->ID );
+
+        /*
+         * build SKU prefix from name.
+         * First, remove whitespaces.
+         * Then, convert special chars. Thanks to Stewie on Stackoverflow: https://stackoverflow.com/questions/9720665/how-to-convert-special-characters-to-normal-characters
+         * Lastly, cut first three letters and convert to upper case.
+         */
+        $sku_prefix = strtoupper(
+            substr(
+             iconv('utf-8', 'ascii//TRANSLIT', (
+                 preg_replace('/\s+/', '',
+                     $parent_product->get_name())
+                 )
+             ), 0, 3)
+        );
+        $origin_sku = $sku_prefix . $loop->post->ID;
+
+        // assemble variation IDs
+        $variation_ids_string = "";
+        if ($parent_product->product_type == 'variable') {
+
+            $variations = $parent_product->get_available_variations();
+
+            foreach ($variations as $key => $value) {
+                $variation_ids_string .= $value[variation_id] . ", ";
+            }
+        }
+
+
+        $current_product_row_data = [
+            'row-nr' => $counter,
+            'retailer_code' => RETAILER_CODE,
+            'origin_sku' => $origin_sku,
+            'sku' => RETAILER_CODE . '_' . $origin_sku,
+            'ean' => RETAILER_CODE,
+            'name-de_DE' => $parent_product->get_name(),
+            'name-en_US' => 'MISSING',
+            'variation IDs' => $variation_ids_string
+        ];
+
+        // output parent row
         echo "<tr>";
-
-        $product_s = wc_get_product( $loop->post->ID );
-
-        echo "<td>" . $counter . "</td><td>pfueller</td><td></td><td>" . $product_s->get_name() . "</td><td>";
-
-
+        foreach ($column_titles as $column_title) {
+            echo "<td>" . $current_product_row_data[$column_title] . "</td>";
+        }
+        echo "</tr>";
+        $counter++;
         ////////////////////// END parent row ////////////////////////////////
 
-        if ($product_s->product_type == 'variable') {
-            $args = array(
-                'post_parent' => $loop->post->ID,
-                'post_type'   => 'product_variation',
-                'numberposts' => -1,
-            );
-            $variations = $product_s->get_available_variations();
+
+
+
+        ////////////////////// START variations rows ////////////////////////////////
+
+        if ($parent_product->product_type == 'variable') {
+
+            $variations = $parent_product->get_available_variations();
+
 
             foreach($variations as $key => $value) {
-                echo $value[variation_id] . ", ";
-            }
-            echo "</td></tr>";
-            $counter++;
+                $origin_sku = $sku_prefix . $value[variation_id];
 
-            ////////////////////// START variations rows ////////////////////////////////
-            foreach($variations as $key => $value) {
-                echo "<tr><td>" . $counter . "</td><td>pfueller</td><td></td><td>" . $product_s->get_name() . "</td><td></td></tr>";
+                echo "<tr><td>" . $counter . "</td><td>pfueller</td><td>" . $origin_sku . "</td><td>pfueller_" . $origin_sku . "</td><td>pfueller</td><td>" . $parent_product->get_name() . "</td><td>MISSING</td><td></td></tr>";
                 $counter++;
             }
-            ////////////////////// END variations rows ////////////////////////////////
+
 
 
             //print($variations[0][variation_id]);
             // You may get all images from $variations variable using loop
 
         }
+
+        ////////////////////// END variations rows ////////////////////////////////
 
 
 
