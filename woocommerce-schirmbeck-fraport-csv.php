@@ -1,5 +1,7 @@
 <?php
 
+/******************************************* START meta stuff *******************************************************/
+
 /*
 Plugin Name: Woocommerce Schirmbeck Fraport Csv
 Plugin URI: http://URI_Of_Page_Describing_Plugin_and_Updates
@@ -18,7 +20,6 @@ License: Proprietary, All Rights Reserved
 
 // Hook for adding admin menus
 add_action('admin_menu', 'mt_add_pages');
-
 // action function for above hook
 function mt_add_pages() {
     /*
@@ -43,23 +44,30 @@ function showPage() {
     //no CSV for now getFraportCSV();
 }
 
+/******************************************* END meta stuff *******************************************************/
+
+
+
+/******************************************* START shared values and setting ground rules **************************/
+
+define("COLUMN_TITLES", ["row-nr", "retailer_code", "origin_sku", "sku", "ean", "name-de_DE", "name-en_US", "variation IDs"]);
+define("RETAILER_CODE", "pfueller");
+
+// set locale for special characters n chinese Characters
+setlocale(LC_CTYPE, 'en_US.UTF8');
+
+/******************************************* END shared values and setting ground rules **************************/
+
 
 function wsfc_display_future_table() {
-
-    define("RETAILER_CODE", "pfueller");
-
-    // set locale for special characters n chinese Characters
-    setlocale(LC_CTYPE, 'en_US.UTF8');
 
     $counter = 1;
 
     echo "<table>";
 
-
     /////////////////////// START column titles //////////////////////////
-    $column_titles = ["row-nr", "retailer_code", "origin_sku", "sku", "ean", "name-de_DE", "name-en_US", "variation IDs"];
     echo "<tr>";
-    foreach ($column_titles as $column_title) {
+    foreach (COLUMN_TITLES as $column_title) {
         echo "<td>" . $column_title . "</td>";
     }
     echo "</tr>";
@@ -108,7 +116,7 @@ function wsfc_display_future_table() {
             }
         }
 
-
+        // assemble all product data into an array for the row
         $current_product_row_data = [
             'row-nr' => $counter,
             'retailer_code' => RETAILER_CODE,
@@ -121,12 +129,8 @@ function wsfc_display_future_table() {
         ];
 
         // output parent row
-        echo "<tr>";
-        foreach ($column_titles as $column_title) {
-            echo "<td>" . $current_product_row_data[$column_title] . "</td>";
-        }
-        echo "</tr>";
-        $counter++;
+        wsfc_output_data_row($current_product_row_data);
+        $counter++; // increment row count
         ////////////////////// END parent row ////////////////////////////////
 
 
@@ -136,20 +140,24 @@ function wsfc_display_future_table() {
 
         if ($parent_product->product_type == 'variable') {
 
+            $current_product_row_data['variation IDs'] = "";
             $variations = $parent_product->get_available_variations();
-
 
             foreach($variations as $key => $value) {
                 $origin_sku = $sku_prefix . $value[variation_id];
 
-                echo "<tr><td>" . $counter . "</td><td>pfueller</td><td>" . $origin_sku . "</td><td>pfueller_" . $origin_sku . "</td><td>pfueller</td><td>" . $parent_product->get_name() . "</td><td>MISSING</td><td></td></tr>";
+                // assemble data for update per variation and update the data array
+                $current_product_row_data_update = [
+                    'row-nr' => $counter,
+                    'origin_sku' => $origin_sku,
+                    'sku' => RETAILER_CODE . '_' . $origin_sku
+                ];
+                // assign updates to existing product row data array
+                $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
+
+                wsfc_output_data_row($current_product_row_data);
                 $counter++;
             }
-
-
-
-            //print($variations[0][variation_id]);
-            // You may get all images from $variations variable using loop
 
         }
 
@@ -161,6 +169,14 @@ function wsfc_display_future_table() {
 
     echo "</table>";
 
+}
+
+function wsfc_output_data_row($row_data) {
+    echo "<tr>";
+    foreach (COLUMN_TITLES as $column_title) {
+        echo "<td>" . $row_data[$column_title] . "</td>";
+    }
+    echo "</tr>";
 }
 
 
