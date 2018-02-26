@@ -50,7 +50,7 @@ function showPage() {
 /******************************************* START shared values and setting ground rules **************************/
 
 define("COLUMN_TITLES",
-    ["row-nr", "thumbnail-helper",
+    ["row-nr", "thumbnail-helper", "helper",
         "retailer_code", "origin_sku", "sku", "ean",
         "name-de_DE", "name-en_US", "name-zh_CN",
         "title-de_DE", "title-en_US", "title-zh_CN",
@@ -64,21 +64,31 @@ define("COLUMN_TITLES",
 
         // image URLs and title as description repeated a bunch of times
         "thumbnail_image-de_DE", "thumbnail_image-en_US", "thumbnail_image-zh_CN",
-        "thumbnail_image_label-de_DE", "thumbnail_image_label-en_US", "thumbnail_image_label-zh_CN",
-        "small_image-de_DE", "small_image-en_US", "small_image-zh_CN",
-        "small_image_label-de_DE", "small_image_label-en_US", "small_image_label-zh_CN",
-        "large_image-de_DE", "large_image-en_US", "large_image-zh_CN",
+        // NOT IN PREVIEW "thumbnail_image_label-de_DE", "thumbnail_image_label-en_US", "thumbnail_image_label-zh_CN",
+        // NOT IN PREVIEW "small_image-de_DE", "small_image-en_US", "small_image-zh_CN",
+        // NOT IN PREVIEW "small_image_label-de_DE", "small_image_label-en_US", "small_image_label-zh_CN",
+        // NOT IN PREVIEW "large_image-de_DE", "large_image-en_US", "large_image-zh_CN",
 
         // a bunch of empty columns we didn't use in the last CSV
-        "image1-de_DE", "image1-en_US", "image1-zh_CN", "image2-de_DE", "image2-en_US", "image2-zh_CN", "info_label-de_DE", "info_label-en_US", "info_label-zh_CN", "netweight", "netweight-unit", "dimensionwidth", "dimensionwidth-unit", "dimensionheight", "dimensionheight-unit", "dimensionlength", "dimensionlength-unit",
+        // NOT IN PREVIEW "image1-de_DE", "image1-en_US", "image1-zh_CN", "image2-de_DE", "image2-en_US", "image2-zh_CN", "info_label-de_DE", "info_label-en_US", "info_label-zh_CN", "netweight", "netweight-unit", "dimensionwidth", "dimensionwidth-unit", "dimensionheight", "dimensionheight-unit", "dimensionlength", "dimensionlength-unit",
 
         // title, again
-        "meta_title-de_DE", "meta_title-en_US", "meta_title-zh_CN",
+        // NOT IN PREVIEW "meta_title-de_DE", "meta_title-en_US", "meta_title-zh_CN",
 
         // more empty columns we haven't ever sed yet
-        "meta_keyword-de_DE", "meta_keyword-en_US", "meta_keyword-zh_CN", "manufacturer_seriesname-zh_CN", "manufacturersdata-zh_CN", "sealofquality-zh_CN", "specialcharacteristics-zh_CN", "warnings-zh_CN", "storageconditions-zh_CN", "winequality-zh_CN", "countryoforigin-zh_CN", "allergens-zh_CN", "growingarea-zh_CN", "tastingnotes-zh_CN", "nutritionalvalue-zh_CN", "smoke_length-zh_CN", "smoke_type-zh_CN", "colourdescription-zh_CN", "clockwork-zh_CN", "washing_instructions-zh_CN", "effect-zh_CN", "fragrancenotes-zh_CN", "material-zh_CN",
+        // NOT IN PREVIEW "meta_keyword-de_DE", "meta_keyword-en_US", "meta_keyword-zh_CN", "manufacturer_seriesname-zh_CN", "manufacturersdata-zh_CN", "sealofquality-zh_CN", "specialcharacteristics-zh_CN", "warnings-zh_CN", "storageconditions-zh_CN", "winequality-zh_CN", "countryoforigin-zh_CN", "allergens-zh_CN", "growingarea-zh_CN", "tastingnotes-zh_CN", "nutritionalvalue-zh_CN", "smoke_length-zh_CN", "smoke_type-zh_CN", "colourdescription-zh_CN", "clockwork-zh_CN", "washing_instructions-zh_CN", "effect-zh_CN", "fragrancenotes-zh_CN", "material-zh_CN",
 
         "brand_code",
+
+        // even more unused, empty columns
+        // NOT IN PREVIEW "manufacturer_seriesname-de_DE", "manufacturer_seriesname-en_US", "agelimit", "producernumber", "manufacturersdata-de_DE", "manufacturersdata-en_US", "sealofquality-de_DE", "sealofquality-en_US", "specialcharacteristics-de_DE", "specialcharacteristics-en_US", "warnings-de_DE", "warnings-en_US", "gmo_free", "withcolourant", "storageconditions-de_DE", "storageconditions-en_US", "winequality-de_DE", "winequality-en_US", "vintage", "countryoforigin-de_DE", "countryoforigin-en_US", "allergens-de_DE", "allergens-en_US", "alcoholbyvolume", "growingarea-de_DE", "growingarea-en_US", "tastingnotes-de_DE", "tastingnotes-en_US", "salt_prefix", "salt_value", "salt_unit", "carbonate_prefix", "carbonate_value", "carbonate_unit", "saturated_fatty_acids_prefix", "saturated_fatty_acids_value", "saturated_fatty_acids_unit", "fat_prefix", "fat_value", "fat_unit", "energy_kcal_prefix", "energy_kcal_value", "energy_kjoule_prefix", "energy_kjoule_value", "protein_prefix", "protein_value", "protein_unit", "fiber_prefix", "fiber_value", "fiber_unit", "sugar_prefix", "sugar_value", "sugar_unit", "big7_base_qty", "big7_base_unit", "nutritionalvalue-de_DE", "nutritionalvalue-en_US", "is_perishable", "package_size", "product_needs_cooling", "nicotine", "tar_content", "cigar_length", "smoke_length-de_DE", "smoke_length-en_US", "smoke_type-de_DE", "smoke_type-en_US",
+
+        "colour", "colourdescription-de_DE",
+
+        // yet more unused, empty columns
+        // NOT IN PREVIW "colourdescription-en_US", "clockwork-de_DE", "clockwork-en_US", "diopters", "storage_capacity", "washing_instructions-de_DE", "washing_instructions-en_US"
+
+        "sex",
     ]
 );
 define("RETAILER_CODE", "pfueller");
@@ -125,13 +135,17 @@ function wsfc_display_future_table() {
      */
     $args = array(
         'post_type' => 'product',
-        'posts_per_page' => 10
+        'posts_per_page' => -1,
+        'post_status' => 'publish'
     );
     $loop = new WP_Query( $args );
     while ( $loop->have_posts() ) : $loop->the_post();
 
         ////////////////////// START parent row ////////////////////////////////
         $parent_product = wc_get_product( $loop->post->ID );
+
+        // some products are not available for purchase bc no price has been set or similar reasons. Skip those.
+        if ($parent_product->is_purchasable() != 1) continue;
 
         /*
          * build SKU prefix from name.
@@ -172,7 +186,7 @@ function wsfc_display_future_table() {
         if ($product_attributes['pa_schuhgroesse'] != null) {
             $family = "shoes";
             $magento_variation_attributes = (($magento_type == "configurable") ? "shoe_size" : ""); // only set attributes when configurable
-        } elseif ($product_attributes['pa_groesse'] != null) {
+        } elseif ($product_attributes['pa_groesse'] != null) { // TODO andere Groessen hinzufügen (Damengrößen BH-Größen, ...). The attributes of variations are the deciding factor
             $family = "clothes";
             $magento_variation_attributes = (($magento_type == "configurable") ? "clothing_size" : ""); // only set attributes when configurable
         }
@@ -181,6 +195,7 @@ function wsfc_display_future_table() {
         $current_product_row_data_update = [
             'row-nr' => $counter,
             'thumbnail-helper' => $parent_product->get_image( array(150,150) ),
+            'helper' => '<pre>' . print_r($parent_product->get_category_ids(), true) . '</pre>',
             'origin_sku' => $origin_sku,
             'sku' => RETAILER_CODE . '_' . $origin_sku,
             'name-de_DE' => $parent_product->get_name(),
@@ -228,6 +243,7 @@ function wsfc_display_future_table() {
                     'magento_type' => 'simple',
                     'magento_variation_attributes' => '',
                     'price-EUR' => $value[display_price],
+                    'colour' => $value[attributes][attribute_pa_farbe],
                 ];
                 // assign updates to existing product row data array
                 $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
