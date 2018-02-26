@@ -32,12 +32,11 @@ function mt_add_pages() {
 
     add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);*/
 
-    add_menu_page('My Custom Page', 'My Custom Page', 'manage_options', 'my-top-level-slug', 'showPage');
+    add_menu_page('Fraport CSV', 'Fraport CSV', 'manage_options', 'my-top-level-slug', 'showPage');
 }
 
 
 function showPage() {
-    echo "<h1>this is dummy content</h1>";
     wsfc_display_future_table();
 
 
@@ -51,17 +50,30 @@ function showPage() {
 /******************************************* START shared values and setting ground rules **************************/
 
 define("COLUMN_TITLES",
-    ["row-nr", "retailer_code", "origin_sku", "sku", "ean",
+    ["row-nr", "thumbnail-helper",
+        "retailer_code", "origin_sku", "sku", "ean",
         "name-de_DE", "name-en_US", "name-zh_CN",
         "title-de_DE", "title-en_US", "title-zh_CN",
         "short_description-de_DE", "short_description-en_US", "short_description-zh_CN",
         "description-de_DE", "description-en_US", "description-zh_CN",
         "family",
-        "magento_tax_class_id",
-        "variation IDs"]
+        "magento_tax_class_id", "magento_status", "magento_visibility", "magento_type", "magento_variation_attributes",
+        "CONF-products",
+        "categories",
+        "price-EUR", "special_price-EUR",
+        "thumbnail_image-de_DE", "thumbnail_image-en_US", "thumbnail_image-zh_CN",
+        "thumbnail_image_label-de_DE", "thumbnail_image_label-en_US", "thumbnail_image_label-zh_CN",
+        "small_image-de_DE", "small_image-en_US", "small_image-zh_CN",
+        "small_image_label-de_DE", "small_image_label-en_US", "small_image_label-zh_CN",
+        "large_image-de_DE", "large_image-en_US", "large_image-zh_CN",
+    ]
 );
 define("RETAILER_CODE", "pfueller");
 define("MAGENTO_TAX_CLASS_ID", 1);
+define("MAGENTO_STATUS", 1);
+define("MAGENTO_VISIBLE", 4);
+define("MAGENTO_INVISIBLE", 1);
+define("CATEGORIES", "pfueller_produkte");
 
 // set locale for special characters n chinese Characters
 setlocale(LC_CTYPE, 'en_US.UTF8');
@@ -89,6 +101,8 @@ function wsfc_display_future_table() {
         'retailer_code' => RETAILER_CODE,
         'ean' => RETAILER_CODE,
         'magento_tax_class_id' => MAGENTO_TAX_CLASS_ID,
+        'magento_status' => MAGENTO_STATUS,
+        'categories' => CATEGORIES,
     ];
 
 
@@ -122,26 +136,38 @@ function wsfc_display_future_table() {
         );
         $origin_sku = $sku_prefix . $loop->post->ID;
 
-        // assemble variation IDs
-        $variation_ids_string = "";
+        // assemble variation IDs, set product configurable or simple
+        $conf_products = "";
+        $magento_type = "simple";
         if ($parent_product->product_type == 'variable') {
+
+            $magento_type = "configurable";
 
             $variations = $parent_product->get_available_variations();
 
             foreach ($variations as $key => $value) {
-                $variation_ids_string .= $value[variation_id] . ", ";
+                $conf_products .= "pfueller_" . $sku_prefix . $value[variation_id] . ", "; // concatenate String that will indicate which are the variations of this parent product
             }
         }
 
-        // determine product family by product attributes
+        // determine product family and magento variation attributes by product attributes
         $product_attributes = $parent_product->get_attributes();
         $family = "other"; //default case
-        if ($product_attributes['pa_groesse'] != null) $family = "clothes";
-        if ($product_attributes['pa_schuhgroesse'] != null) $family = "shoes";
+        $magento_variation_attributes = "";
+        if ($product_attributes['pa_farbe'] != null) $magento_variation_attributes = (($magento_type == "configurable") ? "colour" : ""); // only set attributes when configurable
+        // no else if here because most products have color and a size defined but colour should only be a fallback attribute, e.g. for toys
+        if ($product_attributes['pa_schuhgroesse'] != null) {
+            $family = "shoes";
+            $magento_variation_attributes = (($magento_type == "configurable") ? "shoe_size" : ""); // only set attributes when configurable
+        } elseif ($product_attributes['pa_groesse'] != null) {
+            $family = "clothes";
+            $magento_variation_attributes = (($magento_type == "configurable") ? "clothing_size" : ""); // only set attributes when configurable
+        }
 
         // assemble all product data into an array for the row
         $current_product_row_data_update = [
             'row-nr' => $counter,
+            'thumbnail-helper' => $parent_product->get_image( array(150,150) ),
             'origin_sku' => $origin_sku,
             'sku' => RETAILER_CODE . '_' . $origin_sku,
             'name-de_DE' => $parent_product->get_name(),
@@ -149,7 +175,13 @@ function wsfc_display_future_table() {
             'short_description-de_DE' => $parent_product->get_short_description(),
             'description-de_DE' => $parent_product->get_short_description(),
             'family' => $family, // DEBUG "<pre>" . print_r($parent_product->get_attributes(), true) . "</pre>",
-            'variation IDs' => $variation_ids_string
+            'magento_visibility' => MAGENTO_VISIBLE,
+            'magento_type' => $magento_type,
+            'magento_variation_attributes' => $magento_variation_attributes,
+            'CONF-products' => $conf_products,
+            'price-EUR' => $parent_product->get_price(),
+            'thumbnail_image-de_DE' => 'images/' . $origin_sku . '.jpg',
+            'thumbnail_image_label-de_DE' => $parent_product->get_name(),
         ];
         // assign updates to existing product row data array
         $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
@@ -166,7 +198,7 @@ function wsfc_display_future_table() {
 
         if ($parent_product->product_type == 'variable') {
 
-            $current_product_row_data['variation IDs'] = "";
+            $current_product_row_data['CONF-products'] = "";
             $variations = $parent_product->get_available_variations();
 
             foreach($variations as $key => $value) {
@@ -176,7 +208,11 @@ function wsfc_display_future_table() {
                 $current_product_row_data_update = [
                     'row-nr' => $counter,
                     'origin_sku' => $origin_sku,
-                    'sku' => RETAILER_CODE . '_' . $origin_sku
+                    'sku' => RETAILER_CODE . '_' . $origin_sku,
+                    'magento_visibility' => MAGENTO_INVISIBLE, // TODO update constant variation values before entering loop
+                    'magento_type' => 'simple',
+                    'magento_variation_attributes' => '',
+                    'price-EUR' => $value[display_price],
                 ];
                 // assign updates to existing product row data array
                 $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
