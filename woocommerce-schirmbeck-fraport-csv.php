@@ -61,11 +61,24 @@ define("COLUMN_TITLES",
         "CONF-products",
         "categories",
         "price-EUR", "special_price-EUR",
+
+        // image URLs and title as description repeated a bunch of times
         "thumbnail_image-de_DE", "thumbnail_image-en_US", "thumbnail_image-zh_CN",
         "thumbnail_image_label-de_DE", "thumbnail_image_label-en_US", "thumbnail_image_label-zh_CN",
         "small_image-de_DE", "small_image-en_US", "small_image-zh_CN",
         "small_image_label-de_DE", "small_image_label-en_US", "small_image_label-zh_CN",
         "large_image-de_DE", "large_image-en_US", "large_image-zh_CN",
+
+        // a bunch of empty columns we didn't use in the last CSV
+        "image1-de_DE", "image1-en_US", "image1-zh_CN", "image2-de_DE", "image2-en_US", "image2-zh_CN", "info_label-de_DE", "info_label-en_US", "info_label-zh_CN", "netweight", "netweight-unit", "dimensionwidth", "dimensionwidth-unit", "dimensionheight", "dimensionheight-unit", "dimensionlength", "dimensionlength-unit",
+
+        // title, again
+        "meta_title-de_DE", "meta_title-en_US", "meta_title-zh_CN",
+
+        // more empty columns we haven't ever sed yet
+        "meta_keyword-de_DE", "meta_keyword-en_US", "meta_keyword-zh_CN", "manufacturer_seriesname-zh_CN", "manufacturersdata-zh_CN", "sealofquality-zh_CN", "specialcharacteristics-zh_CN", "warnings-zh_CN", "storageconditions-zh_CN", "winequality-zh_CN", "countryoforigin-zh_CN", "allergens-zh_CN", "growingarea-zh_CN", "tastingnotes-zh_CN", "nutritionalvalue-zh_CN", "smoke_length-zh_CN", "smoke_type-zh_CN", "colourdescription-zh_CN", "clockwork-zh_CN", "washing_instructions-zh_CN", "effect-zh_CN", "fragrancenotes-zh_CN", "material-zh_CN",
+
+        "brand_code",
     ]
 );
 define("RETAILER_CODE", "pfueller");
@@ -181,7 +194,9 @@ function wsfc_display_future_table() {
             'CONF-products' => $conf_products,
             'price-EUR' => $parent_product->get_price(),
             'thumbnail_image-de_DE' => 'images/' . $origin_sku . '.jpg',
-            'thumbnail_image_label-de_DE' => $parent_product->get_name(),
+            'thumbnail_image_label-de_DE' => $parent_product->get_name(), // TODO fill up all syonymous columns beforehand like image URLS, titles, etc..
+            'meta_title-de_DE' => $parent_product->get_name(),
+            'brand_code' => get_the_terms($loop->post->ID, 'product_brand')[0]->slug,
         ];
         // assign updates to existing product row data array
         $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
@@ -229,6 +244,17 @@ function wsfc_display_future_table() {
 
     endwhile; wp_reset_query(); // Remember to reset
 
+
+
+    /////////////////////// START the stop sign row //////////////////////////
+    echo "<tr>";
+    foreach (COLUMN_TITLES as $column_title) {
+        echo "<td>STOP</td>";
+    }
+    echo "</tr>";
+    /////////////////////// END  the stop sign row  //////////////////////////
+
+
     echo "</table>";
 
 }
@@ -239,6 +265,17 @@ function wsfc_output_data_row($row_data) {
         echo "<td>" . $row_data[$column_title] . "</td>";
     }
     echo "</tr>";
+}
+
+/*
+ * get category slug, mainly for brand codes, from category ID
+ * thanks to Ken Rosaka
+ * https://wordpress.org/support/topic/i-need-to-get-the-category-slug-from-the-category-id/
+ */
+function get_cat_slug($cat_id) {
+    $cat_id = (int) $cat_id;
+    $category = &get_category($cat_id);
+    return $category->slug;
 }
 
 
