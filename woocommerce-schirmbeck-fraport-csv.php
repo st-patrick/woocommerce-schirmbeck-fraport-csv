@@ -51,7 +51,7 @@ function showPage() {
 
 // TODO create a very lean, debuggable array of column titles for preview. Only use complete array in CSV export. Or use complete array nomally and unset certain values for rendering or skip them n renering.
 define("COLUMN_TITLES",
-    ["row-nr", "thumbnail-helper", "helper", "link-helper",
+    ["row-nr", "thumbnail-helper", "helper", "helper2", "link-helper",
 
         // NOT IN PREVIEW "retailer_code",
 
@@ -106,8 +106,24 @@ define("COLUMN_TITLES",
 
         "sex",
         "clothing_size",
+
+        // yet more unused, empty columns
+        // NOT IN PREVIW "manufacturer_colour", "glove_size",
+
+        "shoe_size",
+
+        // yet more unused, empty columns
+        // NOT IN PREVIW "is_cabin_baggage", "bag_size", "effect-de_DE", "effect-en_US", "package_size", "fragrancenotes-de_DE", "fragrancenotes-en_US", "storage_capacity", "target_age", "material-de_DE", "material-en_US",
+
     ]
 );
+define("BRA_SIZE_DICTIONARY", [
+    "s-1" => "ladiesS",
+    "m-2" => "ladiesM",
+    "l-3" => "ladiesL",
+    "75b" => "ladiesM",
+    "75c" => "ladiesL",
+]);
 define("RETAILER_CODE", "pfueller");
 define("MAGENTO_TAX_CLASS_ID", 1);
 define("MAGENTO_STATUS", 1);
@@ -189,8 +205,8 @@ function wsfc_display_future_table() {
 
             $variations = $parent_product->get_available_variations();
 
-            foreach ($variations as $key => $value) {
-                $conf_products .= "pfueller_" . $sku_prefix . $value[variation_id] . ", "; // concatenate String that will indicate which are the variations of this parent product
+            foreach ($variations as $variation) {
+                $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . ", "; // concatenate String that will indicate which are the variations of this parent product
             }
         }
 
@@ -203,7 +219,7 @@ function wsfc_display_future_table() {
         if ($product_attributes['pa_schuhgroesse'] != null) {
             $family = "shoes";
             $magento_variation_attributes = (($magento_type == "configurable") ? "shoe_size" : ""); // only set attributes when configurable
-        } elseif ($product_attributes['pa_groesse'] != null) { // TODO andere Groessen hinzufügen (Damengrößen BH-Größen, ...). The attributes of variations are the deciding factor
+        } elseif (!is_null($product_attributes['pa_groesse']) || !is_null($product_attributes['pa_bh-groesse']) || !is_null($product_attributes['pa_kleidergroesse-damen'])) { // TODO andere Groessen hinzufügen (Damengrößen BH-Größen, ...). The attributes of variations are the deciding factor
             $family = "clothes";
             $magento_variation_attributes = (($magento_type == "configurable") ? "clothing_size" : ""); // only set attributes when configurable
         }
@@ -225,6 +241,7 @@ function wsfc_display_future_table() {
             'thumbnail-helper' => $parent_product->get_image( array(150,150) ),
             'link-helper' => '<a href="' . get_permalink() . '">visit</a>',
             'helper' => '', //'<pre>' . print_r($parent_product, true) . '</pre>',
+            'helper2' => '',
             'origin_sku' => $origin_sku,
             'sku' => RETAILER_CODE . '_' . $origin_sku,
             'name-de_DE' => $parent_product->get_name(),
@@ -243,6 +260,7 @@ function wsfc_display_future_table() {
             'brand_code' => get_the_terms($loop->post->ID, 'product_brand')[0]->slug,
             'sex' => $sex,
             'clothing_size' => '',
+            'shoe_size' => '',
         ];
         // assign updates to existing product row data array
         $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
@@ -260,23 +278,47 @@ function wsfc_display_future_table() {
         if ($parent_product->product_type == 'variable') {
 
             $current_product_row_data['CONF-products'] = "";
-            $variations = $parent_product->get_available_variations();
 
-            foreach($variations as $key => $value) {
-                $origin_sku = $sku_prefix . $value[variation_id];
+            foreach($variations as $variation) {
+                $origin_sku = $sku_prefix . $variation[variation_id];
+
+                // create acceptable size string for Fraport CSV from existing attribute
+                $clothing_size = ''; // default to no value
+                $shoe_size = '';
+                // childrens clothing sizes
+                if ( !is_null($variation['attributes']['attribute_pa_groesse']) ) {
+                    $clothing_size = 'child' . $variation['attributes']['attribute_pa_groesse'];
+                    if ($variation['attributes']['attribute_pa_groesse'] == '') $clothing_size = 'ns'; // show that size is not specified if it really isn't
+                }
+                // bra sizes
+                elseif (!is_null($variation['attributes']['attribute_pa_bh-groesse'])) {
+                    $clothing_size = BRA_SIZE_DICTIONARY[ $variation['attributes']['attribute_pa_bh-groesse'] ];
+                }
+                // women's sizes
+                elseif (!is_null($variation['attributes']['attribute_pa_kleidergroesse-damen'])) {
+                    $clothing_size = $variation[attributes]['attribute_pa_kleidergroesse-damen'];
+                }
+                // shoe sizes
+                elseif (!is_null($variation[attributes][attribute_pa_schuhgroesse])) {
+                    $shoe_size = $variation[attributes][attribute_pa_schuhgroesse];
+                }
+
+
 
                 // assemble data for update per variation and update the data array
                 $current_product_row_data_update = [
                     'row-nr' => $counter,
-                    'helper' => '<pre>' . print_r($value[attributes], true) . '</pre>',
+                    'helper' => '<pre>' . print_r($variation[attributes], true) . '</pre>',
+                    'helper2' => $clothing_size . $shoe_size . $variation[attributes][attribute_pa_farbe],
                     'origin_sku' => $origin_sku,
                     'sku' => RETAILER_CODE . '_' . $origin_sku,
                     'magento_visibility' => MAGENTO_INVISIBLE, // TODO update constant variation values before entering loop
                     'magento_type' => 'simple',
                     'magento_variation_attributes' => '',
-                    'price-EUR' => $value[display_price],
-                    'colour' => $value[attributes][attribute_pa_farbe],
-                    'clothing_size' => ($value[attributes][attribute_pa_groesse] ? ('child' . $value[attributes][attribute_pa_groesse]) : ''), // if size is set in variation, use it as value
+                    'price-EUR' => $variation[display_price],
+                    'colour' => $variation[attributes][attribute_pa_farbe],
+                    'clothing_size' => $clothing_size, // if size is set in variation, use it as value
+                    'shoe_size' => $shoe_size,
                 ];
                 // assign updates to existing product row data array
                 $current_product_row_data = array_merge( $current_product_row_data, $current_product_row_data_update );
@@ -314,17 +356,6 @@ function wsfc_output_data_row($row_data) {
         echo "<td>" . $row_data[$column_title] . "</td>";
     }
     echo "</tr>";
-}
-
-/*
- * get category slug, mainly for brand codes, from category ID
- * thanks to Ken Rosaka
- * https://wordpress.org/support/topic/i-need-to-get-the-category-slug-from-the-category-id/
- */
-function get_cat_slug($cat_id) {
-    $cat_id = (int) $cat_id;
-    $category = &get_category($cat_id);
-    return $category->slug;
 }
 
 
