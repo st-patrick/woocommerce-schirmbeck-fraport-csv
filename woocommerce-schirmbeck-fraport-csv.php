@@ -230,8 +230,10 @@ function wsfc_display_future_table() {
     ";
 
     // TODO make CSV creation and download seperate from display
-    echo plugin_dir_path("woocommerce-schirmbeck-fraport-csv.php") . "pfueller_products.csv";
-    echo ABSPATH . 'wp-content/plugins/woocommerce-schirmbeck-fraport-csv/' . "pfueller_products.csv";
+
+    // DEBUG echo plugin_dir_path("woocommerce-schirmbeck-fraport-csv.php") . "pfueller_products.csv";
+    // DEBUG echo ABSPATH . 'wp-content/plugins/woocommerce-schirmbeck-fraport-csv/' . "pfueller_products.csv";
+
     $csv_file = fopen( ABSPATH . 'wp-content/plugins/woocommerce-schirmbeck-fraport-csv/' . "products_pfueller.csv","w");
 
     // create ZIP object for images zipfile
@@ -296,6 +298,14 @@ function wsfc_display_future_table() {
         add_post_meta($loop->post->ID, 'name-zh_CN', get_post_meta(get_the_ID(), 'name-en_US', true), true);
         add_post_meta($loop->post->ID, 'short_description-zh_CN', CHINESE_DESCRIPTION, true); */
 
+        /* ONCE USED NOW ONLY DOCUMENTATIONAL PURPOSE remove HTML entities from name fields
+        // thanks to txnull for helpful comment on http://php.net/manual/de/function.html-entity-decode.php
+        $english_name_without_html = html_entity_decode(get_post_meta(get_the_ID(), 'name-en_US', true),  ENT_QUOTES | ENT_XML1, 'UTF-8');
+        // DEBUG echo $english_name_without_html;
+        update_post_meta($loop->post->ID, 'name-en_US', $english_name_without_html);
+        update_post_meta($loop->post->ID, 'name-zh_CN', $english_name_without_html);*/
+
+
         // some products are not available for purchase bc no price has been set or similar reasons. Skip those.
         if ($parent_product->is_purchasable() != 1) continue;
 
@@ -305,14 +315,7 @@ function wsfc_display_future_table() {
          * Then, convert special chars. Thanks to Stewie on Stackoverflow: https://stackoverflow.com/questions/9720665/how-to-convert-special-characters-to-normal-characters
          * Lastly, cut first three letters and convert to upper case.
          */
-        $sku_prefix = strtoupper(
-            substr(
-             iconv('utf-8', 'ascii//TRANSLIT', (
-                 preg_replace('/\s+/', '',
-                     $parent_product->get_name())
-                 )
-             ), 0, 3)
-        );
+        $sku_prefix = wsfc_build_sku_prefix_from_name($parent_product->get_name());
         $origin_sku = $sku_prefix . $loop->post->ID;
 
         // assemble variation IDs, set product configurable or simple
@@ -328,6 +331,7 @@ function wsfc_display_future_table() {
             // When the attribute is something like "set" or "height", though, there are no correspondig attributes in Fraport shop, so we skip that product.
             $configurable = true;
             foreach ($variations as $variation) {
+
                 if ( is_null($variation['attributes']['attribute_pa_groesse'])
                     && is_null($variation['attributes']['attribute_groesse'])
                     && is_null($variation['attributes']['attribute_pa_bh-groesse'])
@@ -338,8 +342,30 @@ function wsfc_display_future_table() {
                     break;
                 }
 
-                // concatenate String that will indicate which are the variations of this parent product
-                $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . ",";
+                // TODO refactor this code into a function that determines whether a variation is a "one variation product for multiple vriations'
+                // there is a way of having only one "official" variation that covers all sizes. In that case we have to mak sure we still iterate over al sizes
+                // so far, it seems that that is indicated by an empty. but existing attribute field
+                $counter = 0;
+                if ($variation['attributes']['attribute_pa_groesse'] == '') {
+                    $clothing_size = $parent_product->get_variation_attributes()[pa_groesse]; // use as shorthand for the size options
+                    foreach ($clothing_size as $size_variation) {
+                        // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
+                        // TODO refactor these lines into a function
+                        $counter++;
+                        $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . $counter . ",";
+                    }
+                } elseif ($variation['attributes']['attribute_pa_schuhgroesse'] == '') {
+                    $shoe_size = $parent_product->get_variation_attributes()[pa_schuhgroesse]; // use as shorthand for the size options
+                    foreach ($shoe_size as $size_variation) {
+                        // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
+                        // TODO refactor these lines into a function
+                        $counter++;
+                        $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . $counter . ",";
+                    }
+                } else {
+                    // concatenate String that will indicate which are the variations of this parent product
+                    $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . ",";
+                }
             }
 
             // so if the product is a variable product but we cannot transfer it as a conigurable poduct, we just skip it for now.
@@ -509,10 +535,20 @@ function wsfc_display_future_table() {
 
                 // if we have only one variation that covers all sizes, we need to iterate over those sizes. Luckily, we already stored those in the clothing size variable
                 if ( $one_variation_all_sizes ) {
+                    $counter = 0;
 
                     // if it's not a shoe, then iterate oer clothing sizes
+                    // TODO this if clause isn't too good, rather is_array on the field itself
                     if ($shoe_size == '') {
                         foreach ($clothing_size as $key => $size_variation) {
+
+                            // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
+                            // TODO refactor these lines into a function
+                            $counter++;
+                            $variation_sku = $origin_sku . $counter;
+                            $current_product_row_data['origin_sku'] = $variation_sku;
+                            $current_product_row_data['sku'] = RETAILER_CODE . '_' . $variation_sku;
+
                             $current_product_row_data['clothing_size'] = wsfc_process_attribute_pa_groesse($size_variation);
                             $current_product_row_data['helper2'] = wsfc_process_attribute_pa_groesse($size_variation) . $shoe_size . COLOUR_DICTIONARY[ $variation[attributes][attribute_pa_farbe] ];
                             wsfc_output_data_row($current_product_row_data);
@@ -522,6 +558,14 @@ function wsfc_display_future_table() {
                     } elseif ($clothing_size == '') {
 
                         foreach ($shoe_size as $size_variation) {
+
+                            // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
+                            // TODO refactor these lines into a function, see above
+                            $counter++;
+                            $variation_sku = $origin_sku . $counter;
+                            $current_product_row_data['origin_sku'] = $variation_sku;
+                            $current_product_row_data['sku'] = RETAILER_CODE . '_' . $variation_sku;
+
                             $current_product_row_data['shoe_size'] = $size_variation;
                             $current_product_row_data['helper2'] = $size_variation . COLOUR_DICTIONARY[ $variation[attributes][attribute_pa_farbe] ];
                             wsfc_output_data_row($current_product_row_data);
@@ -554,19 +598,6 @@ function wsfc_display_future_table() {
 
 
     endwhile; wp_reset_query(); // Remember to reset
-
-
-
-    /////////////////////// START the stop sign row //////////////////////////
-    echo "<tr>";
-    foreach (PREVIEW_COLUMN_TITLES as $column_title) {
-        echo "<td>STOP</td>";
-    }
-    echo "</tr>";
-
-    // and wrie stop row in CSV, too
-    wsfc_output_csv_stop($csv_file);
-    /////////////////////// END  the stop sign row  //////////////////////////
 
 
     echo "</table>";
@@ -653,6 +684,34 @@ function wsfc_filter_lettered_sizes($unfiltered_size) {
     else $filtered_size = $unfiltered_size; //if no size was found, return unaltered, original size strin
 
     return $filtered_size;
+}
+
+
+/*
+ * clean string from spaces, special characters and make it all caps
+ */
+function wsfc_build_sku_prefix_from_name($name) {
+    /*
+     * build SKU prefix from name.
+     * First, remove whitespaces.
+     * Then, convert special chars. Thanks to Stewie on Stackoverflow: https://stackoverflow.com/questions/9720665/how-to-convert-special-characters-to-normal-characters
+     * Then, remove other special chars. Thanks to Terry Harvey on Stackoverflow: https://stackoverflow.com/questions/14114411/remove-all-special-characters-from-a-string
+     * Lastly, cut first three letters and convert to upper case.
+     */
+    $sku_prefix =
+        strtoupper(
+            substr(
+                preg_replace('/[^A-Za-z0-9\-]/', '',
+                    iconv('utf-8', 'ascii//TRANSLIT',
+                        preg_replace('/\s+/', '',
+                            $name
+                        )
+                    )
+                ), 0, 3
+            )
+        );
+
+    return $sku_prefix;
 }
 
 
