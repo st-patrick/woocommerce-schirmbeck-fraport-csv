@@ -1,7 +1,5 @@
 <?php
 
-/******************************************* START meta stuff *******************************************************/
-
 /*
 Plugin Name: Woocommerce Schirmbeck Fraport Csv
 Plugin URI: http://URI_Of_Page_Describing_Plugin_and_Updates
@@ -12,204 +10,19 @@ Author URI: https://www.atelierschirmbeck.com/
 License: Proprietary, All Rights Reserved
 */
 
+include_once "constants.php";
+include_once "functions.php";
 
 /*
  * add custom button in products submenu in admin area
+ * see functions.php for what actually happens in mt_add_pages
  * source: https://codex.wordpress.org/Administration_Menus#Using_add_submenu_page
  */
-
 // Hook for adding admin menus
 add_action('admin_menu', 'mt_add_pages');
-// action function for above hook
-function mt_add_pages() {
-    /*
-    $parent_slug = 'edit.php?post_type=product';
-    $page_title = 'Download Fraport CSV';
-    $menu_title = 'Fraport CSV';
-    $capability = 'Here you can download the CSV needed for Fraport product import with one click';
-    $menu_slug = 'fraport-csv-download';
-    $function = 'getFraportCSV';
-
-    add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);*/
-
-    add_menu_page('Fraport CSV', 'Fraport CSV', 'manage_options', 'my-top-level-slug', 'showPage');
-}
-
-
-function showPage() {
-    wsfc_display_future_table();
-
-
-    //no CSV Download button for now getFraportCSV();
-}
-
-/******************************************* END meta stuff *******************************************************/
-
 
 
 /******************************************* START shared values and setting ground rules **************************/
-
-define("CSV_COLUMN_TITLES",
-    [
-        "retailer_code", "origin_sku", "sku", "ean",
-
-        "name-de_DE", "name-en_US", "name-zh_CN",
-        "title-de_DE", "title-en_US", "title-zh_CN",
-
-        "short_description-de_DE", "short_description-en_US", "short_description-zh_CN",
-        "description-de_DE", "description-en_US", "description-zh_CN", "info_label-zh_CN", "info_text-zh_CN",
-
-        "family",
-
-        "magento_tax_class_id", "magento_status",
-        "magento_visibility", "magento_type", "magento_variation_attributes",
-
-        "CONF-products",
-
-        "categories",
-
-        "price-EUR", "special_price-EUR",
-
-        // image URLs and title as description repeated a bunch of times
-        "thumbnail_image-de_DE", "thumbnail_image-en_US", "thumbnail_image-zh_CN",
-        "thumbnail_image_label-de_DE", "thumbnail_image_label-en_US", "thumbnail_image_label-zh_CN",
-        "small_image-de_DE", "small_image-en_US", "small_image-zh_CN",
-        "small_image_label-de_DE", "small_image_label-en_US", "small_image_label-zh_CN",
-        "large_image-de_DE", "large_image-en_US", "large_image-zh_CN",
-
-        // a bunch of empty columns we didn't use in the last CSV
-        "image1-de_DE", "image1-en_US", "image1-zh_CN", "image2-de_DE", "image2-en_US", "image2-zh_CN", "info_label-de_DE", "info_label-en_US", "info_label-zh_CN", "netweight", "netweight-unit", "dimensionwidth", "dimensionwidth-unit", "dimensionheight", "dimensionheight-unit", "dimensionlength", "dimensionlength-unit",
-
-        // title, again
-        "meta_title-de_DE", "meta_title-en_US", "meta_title-zh_CN",
-
-        // more empty columns we haven't ever sed yet
-        "meta_keyword-de_DE", "meta_keyword-en_US", "meta_keyword-zh_CN", "manufacturer_seriesname-zh_CN", "manufacturersdata-zh_CN", "sealofquality-zh_CN", "specialcharacteristics-zh_CN", "warnings-zh_CN", "storageconditions-zh_CN", "winequality-zh_CN", "countryoforigin-zh_CN", "allergens-zh_CN", "growingarea-zh_CN", "tastingnotes-zh_CN", "nutritionalvalue-zh_CN", "smoke_length-zh_CN", "smoke_type-zh_CN", "colourdescription-zh_CN", "clockwork-zh_CN", "washing_instructions-zh_CN", "effect-zh_CN", "fragrancenotes-zh_CN", "material-zh_CN",
-
-        "brand_code",
-
-        // even more unused, empty columns
-        "manufacturer_seriesname-de_DE", "manufacturer_seriesname-en_US", "agelimit", "producernumber", "manufacturersdata-de_DE", "manufacturersdata-en_US", "sealofquality-de_DE", "sealofquality-en_US", "specialcharacteristics-de_DE", "specialcharacteristics-en_US", "warnings-de_DE", "warnings-en_US", "gmo_free", "withcolourant", "storageconditions-de_DE", "storageconditions-en_US", "winequality-de_DE", "winequality-en_US", "vintage", "countryoforigin-de_DE", "countryoforigin-en_US", "allergens-de_DE", "allergens-en_US", "alcoholbyvolume", "growingarea-de_DE", "growingarea-en_US", "tastingnotes-de_DE", "tastingnotes-en_US", "salt_prefix", "salt_value", "salt_unit", "carbonate_prefix", "carbonate_value", "carbonate_unit", "saturated_fatty_acids_prefix", "saturated_fatty_acids_value", "saturated_fatty_acids_unit", "fat_prefix", "fat_value", "fat_unit", "energy_kcal_prefix", "energy_kcal_value", "energy_kjoule_prefix", "energy_kjoule_value", "protein_prefix", "protein_value", "protein_unit", "fiber_prefix", "fiber_value", "fiber_unit", "sugar_prefix", "sugar_value", "sugar_unit", "big7_base_qty", "big7_base_unit", "nutritionalvalue-de_DE", "nutritionalvalue-en_US", "is_perishable", "package_size", "product_needs_cooling", "nicotine", "tar_content", "cigar_length", "smoke_length-de_DE", "smoke_length-en_US", "smoke_type-de_DE", "smoke_type-en_US",
-
-        "colour", "colourdescription-de_DE",
-
-        // yet more unused, empty columns
-        "colourdescription-en_US", "clockwork-de_DE", "clockwork-en_US", "diopters", "storage_capacity", "washing_instructions-de_DE", "washing_instructions-en_US",
-
-        "sex",
-        "clothing_size",
-
-        // yet more unused, empty columns
-        "manufacturer_colour", "glove_size",
-
-        "shoe_size",
-
-        // yet more unused, empty columns
-        "is_cabin_baggage", "bag_size", "effect-de_DE", "effect-en_US", "package_size", "fragrancenotes-de_DE", "fragrancenotes-en_US", "storage_capacity", "target_age", "material-de_DE", "material-en_US",
-
-    ]
-);
-define("PREVIEW_COLUMN_TITLES",
-    ["row-nr", "thumbnail-helper", /*"helper", "helper2",*/
-
-        // NOT IN PREVIEW "retailer_code",
-
-        "origin_sku",
-
-        // NOT IN PREVIEW "sku", "ean",
-
-        "name-de_DE", "name-en_US", // NOT IN PREVIEW "name-zh_CN",
-
-        // NOT IN PREVIEW "title-de_DE", "title-en_US", "title-zh_CN",
-
-        "short_description-de_DE", // NOT IN PREVIEW "short_description-en_US", "short_description-zh_CN",
-
-        // NOT IN PREVIEW "description-de_DE", "description-en_US", "description-zh_CN", "info_label-zh_CN", "info_text-zh_CN",
-
-
-        "family",
-
-        // NOT IN PREVIEW "magento_tax_class_id", "magento_status",
-        "magento_visibility", "magento_type", "magento_variation_attributes",
-
-        "CONF-products",
-
-        // NOT IN PREVIEW "categories",
-
-        "price-EUR", // NOT IN PREVIEW "special_price-EUR",
-
-        // image URLs and title as description repeated a bunch of times
-        "thumbnail_image-de_DE", // NOT IN PREVIEW "thumbnail_image-en_US", "thumbnail_image-zh_CN",
-        // NOT IN PREVIEW "thumbnail_image_label-de_DE", "thumbnail_image_label-en_US", "thumbnail_image_label-zh_CN",
-        // NOT IN PREVIEW "small_image-de_DE", "small_image-en_US", "small_image-zh_CN",
-        // NOT IN PREVIEW "small_image_label-de_DE", "small_image_label-en_US", "small_image_label-zh_CN",
-        // NOT IN PREVIEW "large_image-de_DE", "large_image-en_US", "large_image-zh_CN",
-
-        // a bunch of empty columns we didn't use in the last CSV
-        // NOT IN PREVIEW "image1-de_DE", "image1-en_US", "image1-zh_CN", "image2-de_DE", "image2-en_US", "image2-zh_CN", "info_label-de_DE", "info_label-en_US", "info_label-zh_CN", "netweight", "netweight-unit", "dimensionwidth", "dimensionwidth-unit", "dimensionheight", "dimensionheight-unit", "dimensionlength", "dimensionlength-unit",
-
-        // title, again
-        // NOT IN PREVIEW "meta_title-de_DE", "meta_title-en_US", "meta_title-zh_CN",
-
-        // more empty columns we haven't ever sed yet
-        // NOT IN PREVIEW "meta_keyword-de_DE", "meta_keyword-en_US", "meta_keyword-zh_CN", "manufacturer_seriesname-zh_CN", "manufacturersdata-zh_CN", "sealofquality-zh_CN", "specialcharacteristics-zh_CN", "warnings-zh_CN", "storageconditions-zh_CN", "winequality-zh_CN", "countryoforigin-zh_CN", "allergens-zh_CN", "growingarea-zh_CN", "tastingnotes-zh_CN", "nutritionalvalue-zh_CN", "smoke_length-zh_CN", "smoke_type-zh_CN", "colourdescription-zh_CN", "clockwork-zh_CN", "washing_instructions-zh_CN", "effect-zh_CN", "fragrancenotes-zh_CN", "material-zh_CN",
-
-        "brand_code",
-
-        // even more unused, empty columns
-        // NOT IN PREVIEW "manufacturer_seriesname-de_DE", "manufacturer_seriesname-en_US", "agelimit", "producernumber", "manufacturersdata-de_DE", "manufacturersdata-en_US", "sealofquality-de_DE", "sealofquality-en_US", "specialcharacteristics-de_DE", "specialcharacteristics-en_US", "warnings-de_DE", "warnings-en_US", "gmo_free", "withcolourant", "storageconditions-de_DE", "storageconditions-en_US", "winequality-de_DE", "winequality-en_US", "vintage", "countryoforigin-de_DE", "countryoforigin-en_US", "allergens-de_DE", "allergens-en_US", "alcoholbyvolume", "growingarea-de_DE", "growingarea-en_US", "tastingnotes-de_DE", "tastingnotes-en_US", "salt_prefix", "salt_value", "salt_unit", "carbonate_prefix", "carbonate_value", "carbonate_unit", "saturated_fatty_acids_prefix", "saturated_fatty_acids_value", "saturated_fatty_acids_unit", "fat_prefix", "fat_value", "fat_unit", "energy_kcal_prefix", "energy_kcal_value", "energy_kjoule_prefix", "energy_kjoule_value", "protein_prefix", "protein_value", "protein_unit", "fiber_prefix", "fiber_value", "fiber_unit", "sugar_prefix", "sugar_value", "sugar_unit", "big7_base_qty", "big7_base_unit", "nutritionalvalue-de_DE", "nutritionalvalue-en_US", "is_perishable", "package_size", "product_needs_cooling", "nicotine", "tar_content", "cigar_length", "smoke_length-de_DE", "smoke_length-en_US", "smoke_type-de_DE", "smoke_type-en_US",
-
-        "colour", // NOT IN PREVIEW "colourdescription-de_DE",
-
-        // yet more unused, empty columns
-        // NOT IN PREVIW "colourdescription-en_US", "clockwork-de_DE", "clockwork-en_US", "diopters", "storage_capacity", "washing_instructions-de_DE", "washing_instructions-en_US"
-
-        "sex",
-        "clothing_size",
-
-        // yet more unused, empty columns
-        // NOT IN PREVIW "manufacturer_colour", "glove_size",
-
-        "shoe_size",
-
-        // yet more unused, empty columns
-        // NOT IN PREVIW "is_cabin_baggage", "bag_size", "effect-de_DE", "effect-en_US", "package_size", "fragrancenotes-de_DE", "fragrancenotes-en_US", "storage_capacity", "target_age", "material-de_DE", "material-en_US",
-
-    ]
-);
-define("COLOUR_DICTIONARY", [
-    "schwarz" => "black",
-    "blau" => "blue",
-    "grau" => "grey",
-    "petrol" => "petrol",
-    "rosa" => "pink",
-    "weiss" => "white",
-    "hellrosa" => "lightpink",
-    "dunkelrosa" => "darkpink",
-    "braun" => "brown",
-    "creme" => "white",
-    "gruen" => "green",
-    "mint" => "mint",
-    "lila" => "purple",
-    "dunkelblau" => "darkblue",
-    "hellblau" => "lightblue",
-]);
-define("BRA_SIZE_DICTIONARY", [
-    "s-1" => "ladiesS",
-    "m-2" => "ladiesM",
-    "l-3" => "ladiesL",
-    "75b" => "ladiesM",
-    "75c" => "ladiesL",
-]);
-// define("CHINESE_DESCRIPTION", "非常抱歉，暂时无法用中文向您详细描述此产品");
-define("CHINESE_INFOLABEL", "退税信息");
-define("CHINESE_INFOTEXT", "此商品显示价格为含税的价格。购买后，您可按流程办理退税。");
-define("RETAILER_CODE", "pfueller");
-define("MAGENTO_TAX_CLASS_ID", 1);
-define("MAGENTO_STATUS", 1);
-define("MAGENTO_VISIBLE", 4);
-define("MAGENTO_INVISIBLE", 1);
-define("CATEGORIES", "pfueller_produkte");
 
 // set locale for special characters n chinese Characters
 setlocale(LC_CTYPE, 'en_US.UTF8');
@@ -220,7 +33,7 @@ setlocale(LC_CTYPE, 'en_US.UTF8');
 function wsfc_display_future_table() {
 
     // disply instructions for data creation and download
-    echo "
+    echo "<br>
         Bitte warte, bis die Seite aufgehört hat, zu laden (siehe Ladezeichen z.B. oben im Tab bei Chrome).<br>
         Anschließend kannst du die CSV und Zip-Datei mit Bildern hier herunterladen. <br>
         Wenn der Ladevorgang zu früh abgebrochen wird, werden Produkte und Bilder fehlen.<br>
@@ -271,6 +84,7 @@ function wsfc_display_future_table() {
         'magento_tax_class_id' => MAGENTO_TAX_CLASS_ID,
         'magento_status' => MAGENTO_STATUS,
         'categories' => CATEGORIES,
+        "is_saleable" => 1
     ];
 
 
@@ -400,6 +214,17 @@ function wsfc_display_future_table() {
         // do not export non-kids products just now
         if (in_array("Damen", $product_categories)) continue;
 
+        //prepare brand code frm dictionary
+        $brand_code = get_the_terms($loop->post->ID, 'product_brand')[0]->slug;
+        $fraport_dictionary_brand_code = BRAND_DICTIONARY[ $brand_code ];
+        if ($fraport_dictionary_brand_code != null) $brand_code = $fraport_dictionary_brand_code;
+
+        // prepare band labels from fraport array
+        $brand_label = BRAND_LABEL_DICTIONARY[$brand_code];
+        $chinese_brand_label = BRAND_CHINESE_LABEL_DICTIONARY[$brand_code];
+        if ($chinese_brand_label == null) $chinese_brand_label = $brand_label;
+
+
         // assemble all product data into an array for the row
         $current_product_row_data_update = [
             'row-nr' => $counter,
@@ -414,7 +239,10 @@ function wsfc_display_future_table() {
             'magento_variation_attributes' => $magento_variation_attributes,
             'CONF-products' => $conf_products,
             'price-EUR' => $parent_product->get_price(), // TODO fill up all syonymous columns beforehand like image URLS, titles, etc..
-            'brand_code' => get_the_terms($loop->post->ID, 'product_brand')[0]->slug,
+            'brand_code' =>  $brand_code,
+            "label-zh_CN" => $chinese_brand_label,
+            "label-en_US" => $brand_label,
+            "label-de_DE" => $brand_label,
             'sex' => $sex,
         ];
         $current_product_name_keys = array_fill_keys (
@@ -608,137 +436,3 @@ function wsfc_display_future_table() {
     $zip->close();
 
 }
-
-/*
- * a helper function that returns translated text via Google API
- * thanks to Savetheinternet at stackoverflow
- * https://stackoverflow.com/questions/4640378/translate-a-php-string-using-google-translator-api
- */
-function wsfc_google_api_translate($from_lan, $to_lan, $text){
-
-    $request_url = 'https://www.googleapis.com/language/translate/v2?q=' . urlencode($text) . '&source=' . $from_lan . '&target=' . $to_lan . '&key=AIzaSyCaUg1p8UxH8jwK-GI5suRHeCPnHvoqevU';
-
-    $json = json_decode(file_get_contents($request_url));
-    $translated_text = $json->data->translations[0]->translatedText;
-
-    return $translated_text; // DEBUG . '<pre>' . print_r($json, true) . '</pre>';
-}
-
-function wsfc_output_data_row($row_data) {
-    echo "<tr>";
-    foreach (PREVIEW_COLUMN_TITLES as $column_title) {
-        echo "<td>" . $row_data[$column_title] . "</td>";
-    }
-    echo "</tr>";
-}
-
-function wsfc_output_csv_titles($file) {
-    $tobewritten = [];
-
-    foreach (CSV_COLUMN_TITLES as $column_title) {
-        $tobewritten[$column_title] = $column_title;
-    }
-    fputcsv($file, $tobewritten, ';');
-
-}
-
-function wsfc_output_csv_data_row($row_data, $file) {
-    $tobewritten = [];
-
-    foreach (CSV_COLUMN_TITLES as $column_title) {
-        $tobewritten[$column_title] = $row_data[$column_title];
-    }
-    fputcsv($file, $tobewritten, ';');
-
-}
-
-function wsfc_output_csv_stop($file) {
-    $tobewritten = [];
-
-    foreach (CSV_COLUMN_TITLES as $column_title) {
-        $tobewritten[$column_title] = 'STOP';
-    }
-    fputcsv($file, $tobewritten, ';');
-}
-
-function wsfc_process_attribute_pa_groesse($pa_groesse) {
-    $processed_pa_groesse = 'child' . $pa_groesse;
-
-    if (in_array($pa_groesse, ['S', 'M', 'L', 'XL', 's', 'm', 'l', 'xl'])) {
-        $processed_pa_groesse = strtoupper($pa_groesse);
-    }
-
-    return $processed_pa_groesse;
-}
-
-function wsfc_filter_lettered_sizes($unfiltered_size) {
-    $filtered_size = strtoupper($unfiltered_size);
-
-    if (strpos($filtered_size, 'XXL') !== false) $filtered_size = 'XXL';
-    elseif (strpos($filtered_size, 'XL') !== false) $filtered_size = 'XL';
-    elseif (strpos($filtered_size, 'L') !== false) $filtered_size = 'L';
-    elseif (strpos($filtered_size, 'M') !== false) $filtered_size = 'M';
-    elseif (strpos($filtered_size, 'XXS') !== false) $filtered_size = 'XXS';
-    elseif (strpos($filtered_size, 'XS') !== false) $filtered_size = 'XS';
-    elseif (strpos($filtered_size, 'S') !== false) $filtered_size = 'S';
-    else $filtered_size = $unfiltered_size; //if no size was found, return unaltered, original size strin
-
-    return $filtered_size;
-}
-
-
-/*
- * clean string from spaces, special characters and make it all caps
- */
-function wsfc_build_sku_prefix_from_name($name) {
-    /*
-     * build SKU prefix from name.
-     * First, remove whitespaces.
-     * Then, convert special chars. Thanks to Stewie on Stackoverflow: https://stackoverflow.com/questions/9720665/how-to-convert-special-characters-to-normal-characters
-     * Then, remove other special chars. Thanks to Terry Harvey on Stackoverflow: https://stackoverflow.com/questions/14114411/remove-all-special-characters-from-a-string
-     * Lastly, cut first three letters and convert to upper case.
-     */
-    $sku_prefix =
-        strtoupper(
-            substr(
-                preg_replace('/[^A-Za-z0-9\-]/', '',
-                    iconv('utf-8', 'ascii//TRANSLIT',
-                        preg_replace('/\s+/', '',
-                            $name
-                        )
-                    )
-                ), 0, 3
-            )
-        );
-
-    return $sku_prefix;
-}
-
-
-/*********************************** START CSV functionality **********************************************/
-
-function getFraportCSV() {
-    array_to_csv_download(array(
-        array(1,2,3,4), // this array is going to be the first row
-        array(1,2,3,4)), // this array is going to be the second row
-        "numbers.csv"
-    );
-}
-
-// thanks to complex857 and the community https://stackoverflow.com/questions/16251625/how-to-create-and-download-a-csv-file-from-php-script
-function array_to_csv_download($array, $filename = "export.csv", $delimiter=";") {
-    header('Content-Type: application/csv');
-    header('Content-Disposition: attachment; filename="'.$filename.'";');
-
-    // open the "output" stream
-    // see http://www.php.net/manual/en/wrappers.php.php#refsect2-wrappers.php-unknown-unknown-unknown-descriptioq
-    $f = fopen('php://output', 'w');
-
-    foreach ($array as $line) {
-        fputcsv($f, $line, $delimiter);
-    }
-
-    return;
-}
-
-/*********************************** END CSV functionality **********************************************/
