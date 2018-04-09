@@ -93,7 +93,7 @@ define("PREVIEW_COLUMN_TITLES",
 
         "CONF-products",
 
-        // NOT IN PREVIEW "categories",
+        "categories",
 
         "price-EUR", // NOT IN PREVIEW "special_price-EUR",
 
@@ -275,4 +275,3 @@ define("MAGENTO_TAX_CLASS_ID", 1);
 define("MAGENTO_STATUS", 1);
 define("MAGENTO_VISIBLE", 4);
 define("MAGENTO_INVISIBLE", 1);
-define("CATEGORIES", "pfueller_produkte");

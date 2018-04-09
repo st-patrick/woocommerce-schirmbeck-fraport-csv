@@ -53,9 +53,9 @@ function wsfc_display_future_table() {
     $zip = new ZipArchive;
     $zip_open_err_code = $zip->open(ABSPATH . 'wp-content/plugins/woocommerce-schirmbeck-fraport-csv/' . 'images.zip', ZIPARCHIVE::OVERWRITE || ZipArchive::CREATE);
     if ($zip_open_err_code === TRUE) {
-        echo '<br> Zipfile open: ok';
+        echo '<br> Zipfile open: ok<br>';
     } else {
-        die ('<br> error creating zipfile: ' . $zip_open_err_code);
+        die ('<br> error creating zipfile: ' . $zip_open_err_code . '<br>');
     }
 
 
@@ -83,7 +83,6 @@ function wsfc_display_future_table() {
         'info_text-zh_CN' => CHINESE_INFOTEXT,
         'magento_tax_class_id' => MAGENTO_TAX_CLASS_ID,
         'magento_status' => MAGENTO_STATUS,
-        'categories' => CATEGORIES,
         "is_saleable" => 1
     ];
 
@@ -144,6 +143,7 @@ function wsfc_display_future_table() {
             // generally, a variable product is transferred as configurable product.
             // When the attribute is something like "set" or "height", though, there are no correspondig attributes in Fraport shop, so we skip that product.
             $configurable = true;
+
             foreach ($variations as $variation) {
 
                 if ( is_null($variation['attributes']['attribute_pa_groesse'])
@@ -153,6 +153,7 @@ function wsfc_display_future_table() {
                     && is_null($variation['attributes']['attribute_pa_schuhgroesse'])
                     && is_null($variation['attributes']['attribute_pa_schuhgroesse-damen'])) {
                     $configurable = false;
+
                     break;
                 }
 
@@ -160,7 +161,8 @@ function wsfc_display_future_table() {
                 // there is a way of having only one "official" variation that covers all sizes. In that case we have to mak sure we still iterate over al sizes
                 // so far, it seems that that is indicated by an empty. but existing attribute field
                 $counter = 0;
-                if ($variation['attributes']['attribute_pa_groesse'] == '') {
+
+                if ( is_array(['attributes']['attribute_pa_groesse'])) {
                     $clothing_size = $parent_product->get_variation_attributes()[pa_groesse]; // use as shorthand for the size options
                     foreach ($clothing_size as $size_variation) {
                         // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
@@ -168,7 +170,7 @@ function wsfc_display_future_table() {
                         $counter++;
                         $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . $counter . ",";
                     }
-                } elseif ($variation['attributes']['attribute_pa_schuhgroesse'] == '') {
+                } elseif ( is_array($variation['attributes']['attribute_pa_schuhgroesse'])) {
                     $shoe_size = $parent_product->get_variation_attributes()[pa_schuhgroesse]; // use as shorthand for the size options
                     foreach ($shoe_size as $size_variation) {
                         // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
@@ -180,6 +182,8 @@ function wsfc_display_future_table() {
                     // concatenate String that will indicate which are the variations of this parent product
                     $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . ",";
                 }
+
+                // DEBUG $conf_products .= "<pre>" . print_r($variation['attributes'], true) . "</pre>";
             }
 
             // so if the product is a variable product but we cannot transfer it as a conigurable poduct, we just skip it for now.
@@ -201,18 +205,37 @@ function wsfc_display_future_table() {
             $magento_variation_attributes = (($magento_type == "configurable") ? "clothing_size" : ""); // only set attributes when configurable
         }
 
-        // determine which sex / gender this sells to by the product categories
+        // store categories of this product in an array
         $product_categories = $parent_product->get_category_ids();
+        $categories = "";
         foreach ($product_categories as $product_category) {
             $product_categories[$product_category] = get_the_category_by_ID($product_category);
         }
+
+        // do not export non-kids products just now
+        if (in_array("Damen", $product_categories)) continue;
+        // determine which sex / gender this sells to by the product categories
         $sex = "unisex"; //default to unisex
         if (in_array("Mädchen", $product_categories)) $sex = "girls";
         elseif (in_array("Jungs", $product_categories)) $sex = "boys";
         elseif (in_array("Damen", $product_categories)) $sex = "f";
         elseif (in_array("Pfüller Kids", $product_categories)) $sex = "children";
-        // do not export non-kids products just now
-        if (in_array("Damen", $product_categories)) continue;
+
+        // build Fraport categories from given shop categories
+        if (in_array("Pfüller Kids", $product_categories) || in_array("Kindermode", $product_categories) || in_array("Mädchen", $product_categories)) {
+            $categories .= "kinderbekleidung,";
+            if (in_array("Schuhe", $product_categories)) {
+                $categories .= "kinderschuhe,";
+            } elseif (in_array("Accessoires", $product_categories)) {
+                $categories .= "kinderausstattung,";
+            }
+        } elseif (in_array("Kinderwagen", $product_categories) || in_array("Baby", $product_categories)) {
+            $categories .= "kinderausstattung";
+        } else {
+            echo "<br>" . $origin_sku . " not in a useful category, skipping...";
+            continue;
+        }
+
 
         //prepare brand code frm dictionary
         $brand_code = get_the_terms($loop->post->ID, 'product_brand')[0]->slug;
@@ -238,6 +261,7 @@ function wsfc_display_future_table() {
             'magento_type' => $magento_type,
             'magento_variation_attributes' => $magento_variation_attributes,
             'CONF-products' => $conf_products,
+            'categories' => $categories,
             'price-EUR' => $parent_product->get_price(), // TODO fill up all syonymous columns beforehand like image URLS, titles, etc..
             'brand_code' =>  $brand_code,
             "label-zh_CN" => $chinese_brand_label,
@@ -273,11 +297,12 @@ function wsfc_display_future_table() {
             $current_product_zh_description_keys, $current_product_en_description_keys, $current_product_description_keys,
             $current_product_image_keys );
 
-        // output parent row
-        wsfc_output_data_row($current_product_row_data);
-        // aaand also, put it in the CSV
-        wsfc_output_csv_data_row($current_product_row_data, $csv_file);
-        // aaaaaaaand add image file to ZIP while renaming
+        // store the row of attributes of the parent product in a seperate array, bc it needs to be the last row after
+        // its variations ... since PHP assigns by copy with arrays, this is fairly straightforward
+        $parent_product_row_data = $current_product_row_data;
+
+
+        // add image file to ZIP while renaming
         $zip->addFile( get_attached_file($parent_product->get_image_id()) , 'images/' . $origin_sku . '.jpg');
 
         $counter++; // increment row count
@@ -422,6 +447,14 @@ function wsfc_display_future_table() {
         }
 
         ////////////////////// END variations rows ////////////////////////////////
+
+
+
+        // finally, output parent product row after its variations
+        // output parent row
+        wsfc_output_data_row($parent_product_row_data);
+        // aaand also, put it in the CSV
+        wsfc_output_csv_data_row($parent_product_row_data, $csv_file);
 
 
 
