@@ -162,7 +162,8 @@ function wsfc_display_future_table() {
                 // so far, it seems that that is indicated by an empty. but existing attribute field
                 $counter = 0;
 
-                if ( is_array(['attributes']['attribute_pa_groesse'])) {
+                // for some reason, every variation with different size has an array of sizes but only the one-variation-multiple-sizes one has '' as a String for the attribute_pa_ field
+                if ( is_array($parent_product->get_variation_attributes()[pa_groesse]) && ($variation['attributes']['attribute_pa_groesse'] == '') ) {
                     $clothing_size = $parent_product->get_variation_attributes()[pa_groesse]; // use as shorthand for the size options
                     foreach ($clothing_size as $size_variation) {
                         // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
@@ -170,7 +171,7 @@ function wsfc_display_future_table() {
                         $counter++;
                         $conf_products .= "pfueller_" . $sku_prefix . $variation['variation_id'] . $counter . ",";
                     }
-                } elseif ( is_array($variation['attributes']['attribute_pa_schuhgroesse'])) {
+                } elseif ( is_array($parent_product->get_variation_attributes()[pa_schuhgroesse]) && ($variation['attributes']['attribute_pa_schuhgroesse'] == '') ) {
                     $shoe_size = $parent_product->get_variation_attributes()[pa_schuhgroesse]; // use as shorthand for the size options
                     foreach ($shoe_size as $size_variation) {
                         // we need to "invent" new SKUs for the single WooCommerce variations that represent multiple actual sizes / colors / etc...
@@ -207,7 +208,7 @@ function wsfc_display_future_table() {
 
         // store categories of this product in an array
         $product_categories = $parent_product->get_category_ids();
-        $categories = "";
+        $categories = "pfueller,";
         foreach ($product_categories as $product_category) {
             $product_categories[$product_category] = get_the_category_by_ID($product_category);
         }
@@ -223,11 +224,12 @@ function wsfc_display_future_table() {
 
         // build Fraport categories from given shop categories
         if (in_array("Pfüller Kids", $product_categories) || in_array("Kindermode", $product_categories) || in_array("Mädchen", $product_categories)) {
-            $categories .= "kinderbekleidung,";
             if (in_array("Schuhe", $product_categories)) {
-                $categories .= "kinderschuhe,";
+                $categories .= "kinderschuhe";
             } elseif (in_array("Accessoires", $product_categories)) {
-                $categories .= "kinderausstattung,";
+                $categories .= "kinderausstattung";
+            } else {
+                $categories .= "kinderbekleidung";
             }
         } elseif (in_array("Kinderwagen", $product_categories) || in_array("Baby", $product_categories)) {
             $categories .= "kinderausstattung";
@@ -260,7 +262,7 @@ function wsfc_display_future_table() {
             'magento_visibility' => MAGENTO_VISIBLE,
             'magento_type' => $magento_type,
             'magento_variation_attributes' => $magento_variation_attributes,
-            'CONF-products' => $conf_products,
+            'CONF-products' => rtrim($conf_products,','), // remove trailing comma cause it causes error in Fraport system
             'categories' => $categories,
             'price-EUR' => $parent_product->get_price(), // TODO fill up all syonymous columns beforehand like image URLS, titles, etc..
             'brand_code' =>  $brand_code,
