@@ -45,6 +45,8 @@ define("CSV_COLUMN_TITLES",
         // more empty columns we haven't ever sed yet
         "meta_keyword-de_DE", "meta_keyword-en_US", "meta_keyword-zh_CN", "manufacturer_seriesname-zh_CN", "manufacturersdata-zh_CN", "sealofquality-zh_CN", "specialcharacteristics-zh_CN", "warnings-zh_CN", "storageconditions-zh_CN", "winequality-zh_CN", "countryoforigin-zh_CN", "allergens-zh_CN", "growingarea-zh_CN", "tastingnotes-zh_CN", "nutritionalvalue-zh_CN", "smoke_length-zh_CN", "smoke_type-zh_CN", "colourdescription-zh_CN", "clockwork-zh_CN", "washing_instructions-zh_CN", "effect-zh_CN", "fragrancenotes-zh_CN", "material-zh_CN",
 
+        "delivery_disable",
+
         "brand_code", // APPARENTLY NOT NEEDED "label-zh_CN", "label-en_US", "label-de_DE",
 
         // even more unused, empty columns
@@ -64,7 +66,7 @@ define("CSV_COLUMN_TITLES",
         "shoe_size",
 
         // yet more unused, empty columns
-        "is_cabin_baggage", "bag_size", "effect-de_DE", "effect-en_US", "package_size", "fragrancenotes-de_DE", "fragrancenotes-en_US", "storage_capacity", "target_age", "material-de_DE", "material-en_US",
+        /*"is_cabin_baggage",*/ "bag_size", "effect-de_DE", "effect-en_US", "package_size", "fragrancenotes-de_DE", "fragrancenotes-en_US", "storage_capacity", "target_age", "material-de_DE", "material-en_US",
 
     ]
 );

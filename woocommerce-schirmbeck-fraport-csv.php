@@ -83,7 +83,8 @@ function wsfc_display_future_table() {
         'info_text-zh_CN' => CHINESE_INFOTEXT,
         'magento_tax_class_id' => MAGENTO_TAX_CLASS_ID,
         'magento_status' => MAGENTO_STATUS,
-        "is_saleable" => 1
+        "is_saleable" => 1,
+        "delivery_disable" => "home"
     ];
 
 
@@ -122,6 +123,17 @@ function wsfc_display_future_table() {
         // some products are not available for purchase bc no price has been set or similar reasons. Skip those.
         if ($parent_product->is_purchasable() != 1) continue;
 
+		    // if the product isn't described in any one language, do not take it into the CSV
+        $description_de = $parent_product->get_short_description();
+        $description_en = get_post_meta(get_the_ID(), 'short_description-en_US', true);
+        $description_zh = get_post_meta(get_the_ID(), 'short_description-zh_CN', true);
+        if ( $description_de == "" || $description_de == null || $description_de == "-"
+            || $description_en == "" || $description_en == null || $description_en == "-"
+            || $description_zh == "" || $description_zh == null || $description_zh == "-" ) {
+            continue;
+        }
+
+
         /*
          * build SKU prefix from name.
          * First, remove whitespaces.
@@ -135,6 +147,8 @@ function wsfc_display_future_table() {
         $conf_products = "";
         $magento_type = "simple";
         if ($parent_product->product_type == 'variable') {
+	        // some products are configured as variable but have no variations and are thus shown as non-purchasable and also useless since no variations
+	        if( !$parent_product->has_child() ) continue;
 
             $magento_type = "configurable";
 
@@ -281,9 +295,9 @@ function wsfc_display_future_table() {
             [ 'name-zh_CN', 'title-zh_CN', "meta_title-zh_CN", "thumbnail_image_label-zh_CN", "small_image_label-zh_CN", ],
             get_post_meta(get_the_ID(), 'name-zh_CN', true));
         $current_product_empty_keys = array_fill_keys( ['clothing_size', 'shoe_size'], '' );
-        $current_product_description_keys = array_fill_keys( ['short_description-de_DE', 'description-de_DE',], $parent_product->get_short_description() );
-        $current_product_en_description_keys = array_fill_keys( ['short_description-en_US',  'description-en_US'],  get_post_meta(get_the_ID(), 'short_description-en_US', true));
-        $current_product_zh_description_keys = array_fill_keys( ['short_description-zh_CN',  'description-zh_CN'],  get_post_meta(get_the_ID(), 'short_description-zh_CN', true));
+        $current_product_description_keys = array_fill_keys( ['short_description-de_DE', 'description-de_DE',], $description_de );
+        $current_product_en_description_keys = array_fill_keys( ['short_description-en_US',  'description-en_US'], $description_en );
+        $current_product_zh_description_keys = array_fill_keys( ['short_description-zh_CN',  'description-zh_CN'], $description_zh );
         $current_product_image_keys = array_fill_keys(
             [
                 'thumbnail_image-de_DE', "thumbnail_image-en_US", "thumbnail_image-zh_CN",
